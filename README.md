@@ -95,7 +95,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 (InteractiveConsole)
 ```
 
-2. Getting information about the Mentor model for the first time
+1. Getting information about the Mentor model for the first time
 
 ```shell
 >>> Mentor.objects.count()
@@ -114,7 +114,7 @@ Execution time: 0.000833s [Database: default]
 <QuerySet [<Mentor: Mentor 1>, <Mentor: Mentor 2>, <Mentor: Mentor 3>, <Mentor: Mentor 4>, <Mentor: Mentor 5>, <Mentor: Mentor 6>, <Mentor: Mentor 7>, <Mentor: Mentor 8>, <Mentor: Mentor 9>, <Mentor: Mentor 10>, <Mentor: Mentor 11>, <Mentor: Mentor 12>, <Mentor: Mentor 13>, <Mentor: Mentor 14>, <Mentor: Mentor 15>, <Mentor: Mentor 16>, <Mentor: Mentor 17>, <Mentor: Mentor 18>, <Mentor: Mentor 19>, <Mentor: Mentor 20>, '...(remaining elements truncated)...']>
 ```
 
-3. Built-in cache mechanism
+1. Built-in cache mechanism
 
 > Look at the time of the second execution of the above command.
 
@@ -129,3 +129,119 @@ Execution time: 0.000168s [Database: default]
 ```
 
 It's almost 5 x faster than the first execution!
+
+1. Updating given fields
+
+```shell
+>>> mentor = Mentor.objects.get(id=1)
+SELECT "university_mentor"."id",
+       "university_mentor"."name",
+       "university_mentor"."specialization"
+  FROM "university_mentor"
+ WHERE "university_mentor"."id" = 1
+ LIMIT 21
+Execution time: 0.000162s [Database: default]
+>>> mentor.name = "New Name"
+>>> mentor.save()
+UPDATE "university_mentor"
+   SET "name" = 'New Name',
+       "specialization" = 'Frontend'
+ WHERE "university_mentor"."id" = 1
+Execution time: 0.007082s [Database: default]
+```
+
+Looking at the code, we can see that also `specialization` field was updated.
+We didn't ask for that. There is a way to avoid that (using `update_fields` parameter):
+
+```shell
+>>> mentor.save(update_fields=['name'])
+UPDATE "university_mentor"
+   SET "name" = 'New Name'
+ WHERE "university_mentor"."id" = 1
+Execution time: 0.000343s [Database: default]
+```
+
+- we can also use the `update()` method (must be used with `filter()` method, not `get()`):
+
+```shell
+>>> Mentor.objects.filter(id=1).update(name="New Name")
+UPDATE "university_mentor"
+   SET "name" = 'New Name'
+ WHERE "university_mentor"."id" = 1
+Execution time: 0.000167s [Database: default]
+1
+```
+
+1. Lazy loading
+   The idea is to load data when we need it:
+
+```shell
+>>> mentors = Mentor.objects.all()
+>>> print(mentors)
+SELECT "university_mentor"."id",
+       "university_mentor"."name",
+       "university_mentor"."specialization"
+  FROM "university_mentor"
+ LIMIT 21
+Execution time: 0.000113s [Database: default]
+<QuerySet [<Mentor: New Name>, <Mentor: Mentor 2>, <Mentor: Mentor 3>, <Mentor: Mentor 4>, <Mentor: Mentor 5>, <Mentor: Mentor 6>, <Mentor: Mentor 7>, <Mentor: Mentor 8>, <Mentor: Mentor 9>, <Mentor: Mentor 10>, <Mentor: Mentor 11>, <Mentor: Mentor 12>, <Mentor: Mentor 13>, <Mentor: Mentor 14>, <Mentor: Mentor 15>, <Mentor: Mentor 16>, <Mentor: Mentor 17>, <Mentor: Mentor 18>, <Mentor: Mentor 19>, <Mentor: Mentor 20>, '...(remaining elements truncated)...']>
+```
+
+1. N+1 problem
+   Let's check how many queries are executed when we fetch the first 5 students and then print their mentors:
+
+```shell
+>>> students = Student.objects.all()[:5]
+>>> for student in students:
+...     student.mentor.name
+...
+SELECT "university_student"."id",
+       "university_student"."name",
+       "university_student"."bio",
+       "university_student"."mentor_id"
+  FROM "university_student"
+ LIMIT 5
+Execution time: 0.006812s [Database: default]
+SELECT "university_mentor"."id",
+       "university_mentor"."name",
+       "university_mentor"."specialization"
+  FROM "university_mentor"
+ WHERE "university_mentor"."id" = 92
+ LIMIT 21
+Execution time: 0.000104s [Database: default]
+'Mentor 92'
+SELECT "university_mentor"."id",
+       "university_mentor"."name",
+       "university_mentor"."specialization"
+  FROM "university_mentor"
+ WHERE "university_mentor"."id" = 49
+ LIMIT 21
+Execution time: 0.000103s [Database: default]
+'Mentor 49'
+SELECT "university_mentor"."id",
+       "university_mentor"."name",
+       "university_mentor"."specialization"
+  FROM "university_mentor"
+ WHERE "university_mentor"."id" = 40
+ LIMIT 21
+Execution time: 0.000146s [Database: default]
+'Mentor 40'
+SELECT "university_mentor"."id",
+       "university_mentor"."name",
+       "university_mentor"."specialization"
+  FROM "university_mentor"
+ WHERE "university_mentor"."id" = 10
+ LIMIT 21
+Execution time: 0.000113s [Database: default]
+'Mentor 10'
+SELECT "university_mentor"."id",
+       "university_mentor"."name",
+       "university_mentor"."specialization"
+  FROM "university_mentor"
+ WHERE "university_mentor"."id" = 5
+ LIMIT 21
+Execution time: 0.000102s [Database: default]
+'Mentor 5'
+```
+
+We got one query for all students and five (N) queries to get mentors for each student. In summary, we have six (N + 1) queries.
