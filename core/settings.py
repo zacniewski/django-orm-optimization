@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "debug_toolbar",
+    "django_extensions",
     "university.apps.UniversityConfig",
 ]
 
@@ -126,9 +127,7 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-# DDT
+# Django Debug Toolbar
 INTERNAL_IPS = [
-    # ...
     "127.0.0.1",
-    # ...
 ]
