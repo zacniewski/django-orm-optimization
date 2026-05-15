@@ -102,6 +102,8 @@ ______________________________________________________________________
 
 ## 🧪 Experiments
 
+Detailed logs and results of the experiments can be found in the [Experiments Log](experiments.md).
+
 All experiments are conducted using [django-extensions](https://django-extensions.readthedocs.io/en/latest/shell_plus.html) `shell_plus`.
 
 ```bash
